@@ -1,0 +1,6 @@
+applications:
+   - name: events-micro
+     random-route: true
+     path: build/libs/events-micro.war
+     memory: 512M
+     instances: 1

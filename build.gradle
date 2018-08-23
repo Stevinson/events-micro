@@ -1,0 +1,113 @@
+apply plugin: 'java-library'
+apply plugin: 'war'
+apply plugin: 'liberty'
+
+version = '1.0-SNAPSHOT'
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'net.wasdev.wlp.gradle.plugins:liberty-gradle-plugin:2.4'
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // This dependency is exported to consumers, that is to say found on their compile classpath.
+    api 'org.apache.commons:commons-math3:3.6.1'
+
+    // This dependency is used internally, and not exposed to consumers on their own compile classpath.
+    implementation 'com.google.guava:guava:23.0'
+
+    // Use JUnit test framework
+    testImplementation 'junit:junit:4.12'
+
+    providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:'3.1.0'
+
+    // The scope of these are testCompile as they are only needed during the Gradle test phase and do need to be packaged with the app
+    testCompile group: 'commons-httpclient', name: 'commons-httpclient', version:'3.1'
+    testCompile group: 'junit', name: 'junit', version:'4.12'
+
+    libertyRuntime group: 'io.openliberty', name: 'openliberty-runtime', version: '[17.0.0.4,)'
+
+    compile group: 'com.cloudant', name: 'cloudant-client', version: '2.12.0'
+
+//    providedCompile 'javax.servlet:javax.servlet-api:3.1.0'
+    compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
+}
+
+ext {
+    appName = project.name
+    testServerHttpPort = 9000
+    testServerHttpsPort = 9001
+    warContext = appName
+}
+
+liberty {
+    server {
+        name = "${appName}Server"
+        configFile = file("src/main/liberty/config/server.xml")
+        bootstrapProperties = ['default.http.port': testServerHttpPort,
+                               'default.https.port': testServerHttpsPort,
+                               'app.context.root': warContext]
+        packageLiberty {
+            archive = "$buildDir/${appName}.zip"
+            include = "usr"
+        }
+    }
+}
+
+war {
+    archiveName = "${baseName}.${extension}"
+}
+
+test {
+    reports.html.destination = file("$buildDir/reports/unit")
+    reports.junitXml.destination = file("$buildDir/test-results/unit")
+    exclude '**/it/**'
+}
+
+task integrationTest(type: Test) {
+    group 'Verification'
+    description 'Runs the integration tests.'
+    reports.html.destination = file("$buildDir/reports/it")
+    reports.junitXml.destination = file("$buildDir/test-results/it")
+    include '**/it/**'
+    exclude '**/unit/**'
+
+    // This defines some variables needed be the test class
+    systemProperties = ['liberty.test.port': testServerHttpPort, 'war.name': warContext]
+}
+
+task openBrowser {
+    description = 'Open browser to http://localhost:9000/${warContext}'
+    group 'Verification'
+    doLast {
+        java.awt.Desktop.desktop.browse "http://localhost:${testServerHttpPort}/${appName}".toURI()
+    }
+}
+
+// TODO: The test endpoint not working - fix when have a chance
+//task openTestReport {
+//    description = 'Open browser to the test report'
+//    group 'Verification'
+//    doLast {
+//        java.awt.Desktop.desktop.browse file("$buildDir/reports/it/index.html").toURI()
+//    }
+//}
+
+// Dependency directives: associate the war and java tasks to the liberty tasks to get proper task ordering
+clean.dependsOn 'libertyStop'
+check.dependsOn 'integrationTest'
+integrationTest.dependsOn 'libertyStart'
+integrationTest.finalizedBy 'libertyStop'
+//integrationTest.finalizedBy 'openTestReport'
+libertyPackage.dependsOn 'libertyStop'
+
+

@@ -1,0 +1,14 @@
+<server description="events-micro server">
+    <featureManager>
+        <!--<feature>servlet-3.1</feature>-->
+        <feature>jaxrs-2.0</feature>
+        <feature>jaxws-2.2</feature>
+        <!--Is jaxws needed?-->
+        <!--servlet and jaxrs might both be in webProfile; if so remove-->
+        <!--<feature>webProfile-7.0</feature>-->
+    </featureManager>
+
+    <httpEndpoint httpPort="${default.http.port}" httpsPort="${default.https.port}" id="defaultHttpEndpoint"  host="*" />
+
+    <webApplication id="events-micro" location="events-micro.war" name="events-micro" contextRoot="${app.context.root}" type="war"/>
+</server>
