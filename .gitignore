@@ -1,8 +1,11 @@
 .DS_Store
 cloudant.properties
-/build
+/build/
 gradlew
 gradlew.bat
 *.idea
 .gradle
-/gradle
+*.jar
+*.war
+*.ear
+*.class
